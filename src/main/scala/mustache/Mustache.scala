@@ -1,17 +1,16 @@
 import scala.annotation.tailrec
-import scala.io.Source
 import scala.collection.MapLike
-import java.lang.reflect.{Field=>F,Method=>M}
-import scala.concurrent.{Await, Awaitable}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Awaitable}
+import scala.io.Source
 
 package mustache {
 
-  case class MustacheParseException(line:Int, msg:String) 
+  case class MustacheParseException(line:Int, msg:String)
     extends Exception("Line "+line+": "+msg)
 
   /**
-   * view helper trait 
+   * view helper trait
    **/
   trait MustacheHelperSupport {
     private val contextLocal = new java.lang.ThreadLocal[Any]()
@@ -25,7 +24,7 @@ package mustache {
       contextLocal.set(context)
       renderLocal.set(render)
       try { fn }
-      finally { 
+      finally {
         contextLocal.set(null)
         renderLocal.set(null)
       }
@@ -37,7 +36,7 @@ package mustache {
    **/
   class Mustache(
     root: Token
-  ) extends MustacheHelperSupport 
+  ) extends MustacheHelperSupport
   {
 
     def this (source:Source
@@ -53,19 +52,19 @@ package mustache {
 
     def this(
         str:String
-      , open:String 
+      , open:String
       , close:String
       ) = this(Source.fromString(str), open, close)
 
     private val compiledTemplate = root
 
-    val globals:Map[String,Any] = 
+    val globals:Map[String,Any] =
       {
         val excludedGlobals = List("wait","toString","hashCode","getClass","notify","notifyAll")
-        Map( 
+        Map(
           (this.getClass().getMethods
             .filter(x => {
-              val name = x.getName 
+              val name = x.getName
               val pt = x.getParameterTypes
               ( !name.startsWith("render$default")
               ) && (
@@ -77,11 +76,11 @@ package mustache {
               ) && ((
                 pt.length == 0
               ) || (
-                pt.length == 1 
+                pt.length == 1
                 && pt(0) == classOf[String]
               ))
             })
-            .map( x=>{x.getName-> 
+            .map( x=>{x.getName->
               (if(x.getParameterTypes.length == 0) ()=>{ x.invoke(this) }
               else (str:String)=>{ x.invoke(this, str) })
             })) : _*
@@ -128,7 +127,7 @@ package mustache {
         state match {
           case Text =>
             if (cur == otag.charAt(0))
-              if (otag.length > 1) { tagPosition = 1; state = OTag } 
+              if (otag.length > 1) { tagPosition = 1; state = OTag }
               else { staticText; state = Tag }
             else buf.append(cur)
 
@@ -177,28 +176,28 @@ package mustache {
 
     private def consume = {
       prev = cur
-      
+
       if (src.hasNext) {
         cur = src.next
         // \n, \r\n, \r
         if ( cur == '\r' ||
-              ( cur == '\n' && prev != '\r' ) 
+              ( cur == '\n' && prev != '\r' )
             ) line = line+1
         true
       } else false
     }
 
-    private def notOTag = { 
+    private def notOTag = {
       buf.append(otag.substring(0,tagPosition))
-      state = Text 
+      state = Text
     }
-    private def notCTag = { 
+    private def notCTag = {
       buf.append(ctag.substring(0,tagPosition))
       state = Tag
     }
     private def reduce:String = { val r = buf.toString; buf.clear; r }
 
-    private def staticText:Unit = { 
+    private def staticText:Unit = {
       val r = reduce
       if (r.length>0) stack = StaticTextToken(r)::stack
     }
@@ -237,8 +236,8 @@ package mustache {
           ) : List[Token] = s.headOption match {
             case None => fail("Closing unopened section \""+name+"\"")
 
-            case Some(IncompleteSection(key, inverted,startOTag,startCTag)) 
-              if (key == name) => 
+            case Some(IncompleteSection(key, inverted,startOTag,startCTag))
+              if (key == name) =>
                 SectionToken(
                   inverted
                   , name
@@ -248,10 +247,10 @@ package mustache {
                   , otag
                   , ctag)::s.tail
 
-            case Some(IncompleteSection(key, inverted,_,_)) 
+            case Some(IncompleteSection(key, inverted,_,_))
               if (key != name) => fail("Unclosed section \""+key+"\"")
 
-            case Some(other) => 
+            case Some(other) =>
               addSection(other::children, s.tail)
           }
           stack = addSection(List[Token](), stack)
@@ -262,13 +261,13 @@ package mustache {
           if (content.size>2 && content.endsWith("=")) {
             val changeDelimiter = skipBoth
             changeDelimiter.split("""\s+""",-1).toSeq match {
-              case Seq(o,c) => { 
+              case Seq(o,c) => {
                 stack = ChangeDelimitersToken(o,c,otag,ctag)::stack
-                otag = o; ctag = c 
+                otag = o; ctag = c
               }
               case _ => fail("Invalid change delimiter tag content: \""+changeDelimiter+"\"")
             }
-          } else 
+          } else
               fail("Invalid change delimiter tag content: \""+content+"\"")
         case _ => stack = EscapedToken(content, otag, ctag)::stack
       }
@@ -288,12 +287,12 @@ package mustache {
   }
 
   object EmptyProduct extends TokenProduct {
-    val maxLength = 0 
+    val maxLength = 0
     def write(out:StringBuilder):Unit = {}
   }
 
   case class StringProduct(str:String) extends TokenProduct {
-    val maxLength = str.length 
+    val maxLength = str.length
     def write(out:StringBuilder):Unit = out.append(str)
   }
 
@@ -310,7 +309,7 @@ package mustache {
           tokens:List[Token]
           , context:Any
           , partials:Map[String,Mustache]
-          , callstack:List[Any]):TokenProduct = 
+          , callstack:List[Any]):TokenProduct =
       composite(tokens.map{(_,context)},partials, callstack)
 
     def composite(
@@ -339,7 +338,7 @@ package mustache {
     def render(context:Any, partials:Map[String,Mustache], callstack:List[Any]):TokenProduct = fail
     def templateSource:String = fail
 
-    private def fail = 
+    private def fail =
       throw new Exception("Weird thing happened. There is incomplete section in compiled template.")
 
   }
@@ -362,7 +361,7 @@ package mustache {
 
     def render(context:Any
           , partials:Map[String,Mustache]
-          , callstack:List[Any]):TokenProduct = EmptyProduct 
+          , callstack:List[Any]):TokenProduct = EmptyProduct
 
     def templateSource:String = source
 
@@ -383,8 +382,8 @@ package mustache {
 
     protected def defaultRender(
                     otag:String
-                    , ctag:String 
-    ):(Any,Map[String,Mustache],List[Any])=>(String)=>String = 
+                    , ctag:String
+    ):(Any,Map[String,Mustache],List[Any])=>(String)=>String =
       (context:Any, partials:Map[String,Mustache],callstack:List[Any])=>(str:String)=>{
         val t = new Mustache(str, otag, ctag)
         t.render(context, partials, callstack)
@@ -396,11 +395,11 @@ package mustache {
         , callstack:List[Any]
         , childrenString:String
         , render: (Any, Map[String, Mustache],List[Any])=>(String)=>String
-    ):Any = 
+    ):Any =
     {
       val r = render(context, partials, callstack)
 
-      val wrappedEval = 
+      val wrappedEval =
         callstack.filter(_.isInstanceOf[Mustache]).asInstanceOf[List[Mustache]].foldLeft(()=>{ eval(findInContext(context::callstack, key)
               , childrenString, r) })( (f,e)=>{ ()=>{e.withContextAndRenderFn(context,r)(f())} } )
       wrappedEval() match {
@@ -408,13 +407,13 @@ package mustache {
         case other => other
       }
     }
-    
+
 
     @tailrec
     private def eval(
                   value:Any
                   , childrenString:String
-                  , render:(String)=>String 
+                  , render:(String)=>String
     ):Any =
       value match {
         case Some(someValue) => eval(someValue, childrenString, render)
@@ -422,17 +421,17 @@ package mustache {
         case a:Awaitable[_] =>
           eval(Await.result(a, Duration.Inf), childrenString, render)
 
-        case f:Function0[_] => 
+        case f:Function0[_] =>
           eval(f(), childrenString, render)
 
         case s:Seq[_] => s
 
         case m:MapLike[_, _, _] => m
 
-        case f:Function1[String, _] => 
+        case f:Function1[String, _] =>
           eval(f(childrenString), childrenString, render)
 
-        case f:Function2[String, Function1[String,String], _] => 
+        case f:Function2[String, Function1[String,String], _] =>
           eval(f(childrenString, render), childrenString, render)
 
         case other => other
@@ -471,7 +470,7 @@ package mustache {
       }
     }
 
-    private def fields(w:AnyRef) = Map( 
+    private def fields(w:AnyRef) = Map(
       w.getClass().getFields.map(x => {x.getName -> x}):_*
     )
 
@@ -518,7 +517,7 @@ package mustache {
 
     private val childrenSource = children.map(_.templateSource).mkString
 
-    private val source = startOTag + (if(inverted) "^" else "#") + key + 
+    private val source = startOTag + (if(inverted) "^" else "#") + key +
       startCTag + childrenSource + endOTag + "/" + key + endCTag
 
     private val childrenTemplate = {
@@ -537,27 +536,27 @@ package mustache {
               , childrenSource
               , renderContent
       ) match {
-        case null => 
+        case null =>
           if (inverted) composite(children, context, partials, context::callstack)
           else EmptyProduct
-        case None => 
+        case None =>
           if (inverted) composite(children, context, partials, context::callstack)
           else EmptyProduct
-        case b:Boolean => 
+        case b:Boolean =>
           if (b^inverted) composite(children, context, partials, context::callstack)
           else EmptyProduct
-        case s:Seq[_] if(inverted) => 
+        case s:Seq[_] if(inverted) =>
           if (s.isEmpty) composite(children, context, partials, context::callstack)
           else EmptyProduct
         case s:Seq[_] if(!inverted) => {
           val tasks = for (element<-s;token<-children) yield (token, element)
           composite(tasks, partials, context::callstack)
         }
-        case str:String => 
+        case str:String =>
           if (!inverted) StringProduct(str)
           else EmptyProduct
 
-        case other => 
+        case other =>
           if (!inverted) composite(children, other, partials, context::callstack)
           else EmptyProduct
       }
@@ -578,9 +577,9 @@ package mustache {
     def templateSource:String = source
   }
 
-  case class UnescapedToken(key:String, otag:String, ctag:String) 
-    extends Token 
-    with ContextHandler 
+  case class UnescapedToken(key:String, otag:String, ctag:String)
+    extends Token
+    with ContextHandler
     with ValuesFormatter {
     private val source = otag + "&" + key + ctag
 
@@ -597,15 +596,15 @@ package mustache {
     def templateSource:String = source
   }
 
-  case class EscapedToken(key:String, otag:String, ctag:String) 
-    extends Token 
-    with ContextHandler 
+  case class EscapedToken(key:String, otag:String, ctag:String)
+    extends Token
+    with ContextHandler
     with ValuesFormatter {
     private val source = otag + key + ctag
 
     def render(context:Any
           , partials:Map[String,Mustache]
-          , callstack:List[Any]):TokenProduct = { 
+          , callstack:List[Any]):TokenProduct = {
       val v = format(valueOf(key,context,partials,callstack,"",defaultRender(otag,ctag)))
       new TokenProduct {
         val maxLength = (v.length*1.2).toInt
