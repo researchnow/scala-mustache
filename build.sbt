@@ -1,15 +1,15 @@
 name := "mustache"
+organization := "com.researchnow"
 
-version := "1.2"
-
-scalaVersion := "2.11.1"
-
-resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
-
-resolvers += "Typesafe Snapshots Repository" at "http://repo.typesafe.com/typesafe/snapshots/"
+version := "2.1"
+scalaVersion := "2.13.12"
+javacOptions := Seq("-source", "1.8", "-target", "1.8")
+scalacOptions ++= Seq("-unchecked", "-deprecation", "-target:jvm-1.8")
+crossScalaVersions := Seq("2.11.12", "2.12.13", "2.13.12")
 
 libraryDependencies ++= Seq(
-  "junit" % "junit" % "4.8.1" % "test->default",
-  "org.specs2" %% "specs2" % "2.3.12" % "test->default",
-  "com.typesafe.akka" %% "akka-actor" % "2.3.3" % "test->default"
+  "org.jline" % "jline" % "3.19.0" % "test",
+  "junit" % "junit" % "4.13.1" % "test",
+  "org.specs2" %% "specs2-core" % "4.10.6" % "test",
+  "org.specs2" %% "specs2-junit" % "4.10.6" % "test"
 )

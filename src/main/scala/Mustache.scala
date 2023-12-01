@@ -1,7 +1,5 @@
 import scala.annotation.tailrec
 import scala.io.Source
-import scala.collection.MapLike
-import java.lang.reflect.{Field=>F,Method=>M}
 import scala.concurrent.{Await, Awaitable}
 import scala.concurrent.duration._
 
@@ -427,7 +425,7 @@ package mustache {
 
         case s:Seq[_] => s
 
-        case m:MapLike[_, _, _] => m
+        case m:Map[_, _] => m
 
         case f:Function1[String, _] => 
           eval(f(childrenString), childrenString, render)
@@ -445,7 +443,7 @@ package mustache {
         case Some(head) =>
           (head match {
             case null => None
-            case m : MapLike[String,_,_] =>
+            case m : Map[String,_] =>
               m.get(key) match {
                 case Some(v) => v
                 case None => None
