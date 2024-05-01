@@ -60,8 +60,7 @@ package mustache {
     val globals:Map[String,Any] = 
       {
         val excludedGlobals = List("wait","toString","hashCode","getClass","notify","notifyAll")
-        Map( 
-          (this.getClass().getMethods
+        this.getClass.getMethods
             .filter(x => {
               val name = x.getName 
               val pt = x.getParameterTypes
@@ -73,7 +72,7 @@ package mustache {
               ) && (
                 !excludedGlobals.contains(name)
               ) && ((
-                pt.length == 0
+                pt.isEmpty
               ) || (
                 pt.length == 1 
                 && pt(0) == classOf[String]
@@ -82,8 +81,7 @@ package mustache {
             .map( x=>{x.getName-> 
               (if(x.getParameterTypes.length == 0) ()=>{ x.invoke(this) }
               else (str:String)=>{ x.invoke(this, str) })
-            })) : _*
-          )
+            }).toIndexedSeq.toMap
         }
 
     def render(
@@ -177,7 +175,7 @@ package mustache {
       prev = cur
       
       if (src.hasNext) {
-        cur = src.next
+        cur = src.next()
         // \n, \r\n, \r
         if ( cur == '\r' ||
               ( cur == '\n' && prev != '\r' ) 
@@ -194,16 +192,16 @@ package mustache {
       buf.append(ctag.substring(0,tagPosition))
       state = Tag
     }
-    private def reduce:String = { val r = buf.toString; buf.clear; r }
+    private def reduce:String = { val r = buf.toString; buf.clear(); r }
 
     private def staticText:Unit = { 
       val r = reduce
-      if (r.length>0) stack = StaticTextToken(r)::stack
+      if (r.nonEmpty) stack = StaticTextToken(r)::stack
     }
 
     private def checkContent(content:String):String = {
       val trimmed = content.trim
-      if (trimmed.length == 0) fail("Empty tag")
+      if (trimmed.isEmpty) fail("Empty tag")
       else trimmed
     }
 
@@ -319,7 +317,7 @@ package mustache {
       val len = result.foldLeft(0)({_+_.maxLength})
       new TokenProduct {
         val maxLength = len
-        def write(out:StringBuilder) = result.map{_.write(out)}
+        def write(out:StringBuilder) = result.foreach{_.write(out)}
       }
     }
   }
@@ -469,15 +467,15 @@ package mustache {
       }
     }
 
-    private def fields(w:AnyRef) = Map( 
-      w.getClass().getFields.map(x => {x.getName -> x}):_*
-    )
+    private def fields(w:AnyRef) = {
+      w.getClass.getFields.map(x => {x.getName -> x}).toIndexedSeq.toMap
+    }
 
-    private def methods(w:AnyRef) = Map(
-      w.getClass().getMethods
+    private def methods(w:AnyRef) = {
+      w.getClass.getMethods
         .filter(x => { x.getParameterTypes.length == 0 })
-        .map(x => { x.getName -> x }) :_*
-    )
+        .map(x => { x.getName -> x }).toIndexedSeq.toMap
+    }
 
     private def wrapped(x:Any):AnyRef =
       x match {

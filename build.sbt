@@ -3,9 +3,9 @@ organization := "com.researchnow"
 
 version := "2.1"
 scalaVersion := "2.13.12"
-javacOptions := Seq("-source", "1.8", "-target", "1.8")
-scalacOptions ++= Seq("-unchecked", "-deprecation", "-target:jvm-1.8")
-crossScalaVersions := Seq("2.11.12", "2.12.13", "2.13.12")
+javacOptions ++= Seq("-source", "8", "-target", "8")
+scalacOptions ++= Seq("-unchecked", "-deprecation")
+crossScalaVersions := Seq("2.12.13", "2.13.12")
 
 libraryDependencies ++= Seq(
   "org.jline" % "jline" % "3.19.0" % "test",
