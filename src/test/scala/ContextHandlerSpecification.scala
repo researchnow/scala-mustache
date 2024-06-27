@@ -1,11 +1,14 @@
-import scala.concurrent.{future}
+//import scala.concurrent.{future}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import org.specs2.mutable._
 import org.specs2.runner._
 
 package mustache {
-object ContextHandlerSpecification extends SpecificationWithJUnit {
+
+  import scala.concurrent.Future
+
+  object ContextHandlerSpecification extends SpecificationWithJUnit {
 
   "context handler" should {
     object T extends ContextHandler
@@ -63,11 +66,11 @@ object ContextHandlerSpecification extends SpecificationWithJUnit {
     }
 
     "extract values out of the futures" in {
-      T.valueOf("test", Map( "test"-> future{ 42 } ), Map(), List(SampleTemplate),"", render) must be equalTo(42)
+      T.valueOf("test", Map( "test"-> Future{ 42 } ), Map(), List(SampleTemplate),"", render) must be equalTo(42)
     }
 
     "extract values out of the nested closures / futures" in {
-      T.valueOf("test", Map( "test"-> future{ ()=>{ 42 } } ), Map(), List(SampleTemplate),"", render) must be equalTo(42)
+      T.valueOf("test", Map( "test"-> Future{ ()=>{ 42 } } ), Map(), List(SampleTemplate),"", render) must be equalTo(42)
     }
 
     "extract simple globals" in {
